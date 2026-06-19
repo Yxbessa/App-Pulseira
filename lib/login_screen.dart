@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'auth_service.dart';
+// Precisamos importar o main.dart para o login enxergar a HomeScreen
+import 'main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,14 +38,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = false);
-
+    if(!mounted) {
+      return;
+    }
     if (erro != null) {
       // Mostra o erro na tela
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro)));
     } else {
       // Sucesso! Aqui você navega para a tela principal da pulseira
-      print("Usuário autenticado com sucesso!");
+        print("Usuário autenticado com sucesso!");Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
       // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SuaTelaPrincipal()));
+        );
     }
   }
 

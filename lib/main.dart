@@ -2,19 +2,29 @@ import 'package:flutter/material.dart';
 import 'ble_controller.dart';
 import 'notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; // Arquivo gerado pelo flutterfire CLI
 import 'login_screen.dart';
 void main() async {
   // Garante que o motor do Flutter está rodando antes de chamar bibliotecas nativas
   WidgetsFlutterBinding.ensureInitialized(); 
-  
+
+  // INICIALIZAÇÃO MANUAL DO FIREBASE (HACK)
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      // 1. Procure no JSON por "current_key" e cole o valor aqui:
+      apiKey: 'AIzaSyDwNL5OEZskvmuVnXn82sbX4RNCqSlMsR8', 
+      
+      // 2. Procure no JSON por "mobilesdk_app_id" e cole o valor aqui:
+      appId: '1:999050142406:web:a662eee5b930215601edc7', 
+      
+      // 3. Procure no JSON por "project_number" e cole o valor aqui:
+      messagingSenderId: '999050142406', 
+      
+      // 4. Procure no JSON por "project_id" e cole o valor aqui:
+      projectId: 'registro-pulseira-infantil', 
+    ),
+  );
   // Liga o nosso serviço de notificação
   await NotificationService.initialize();
-  // Inicializa o Firebase com as chaves corretas para Android/iOS
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
   runApp(const MyApp());
 }
 
@@ -30,7 +40,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
       // Aqui nós apontamos para a tela que criamos abaixo, e não mais para o "MyHomePage"
-      home: const HomeScreen(), 
+      home: const LoginScreen(), 
     );
   }
 }
