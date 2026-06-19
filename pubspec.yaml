@@ -36,6 +36,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_blue_plus: ^2.3.5
   flutter_local_notifications: ^21.0.0
+  firebase_core: ^4.11.0
+  firebase_auth: ^6.5.3
+  cloud_firestore: ^6.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

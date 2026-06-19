@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'ble_controller.dart';
 import 'notification_service.dart';
-
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // Arquivo gerado pelo flutterfire CLI
+import 'login_screen.dart';
 void main() async {
   // Garante que o motor do Flutter está rodando antes de chamar bibliotecas nativas
   WidgetsFlutterBinding.ensureInitialized(); 
   
   // Liga o nosso serviço de notificação
   await NotificationService.initialize();
+  // Inicializa o Firebase com as chaves corretas para Android/iOS
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
   runApp(const MyApp());
 }
