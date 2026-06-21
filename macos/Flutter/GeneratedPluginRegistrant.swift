@@ -8,7 +8,7 @@ import Foundation
 import cloud_firestore
 import firebase_auth
 import firebase_core
-import flutter_blue_plus
+import flutter_blue_plus_darwin
 import flutter_local_notifications
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {

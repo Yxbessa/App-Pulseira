@@ -14,7 +14,7 @@ class NotificationService {
         InitializationSettings(android: initializationSettingsAndroid);
 
     // Inicializa o plugin
-await _notificationsPlugin.initialize(initializationSettings);
+await _notificationsPlugin.initialize(settings: initializationSettings);
 }
 
   // Função que será chamada para exibir a notificação de fato
@@ -33,9 +33,9 @@ await _notificationsPlugin.initialize(initializationSettings);
     // Mostra a notificação. O ID 0 significa que se houver outra notificação antiga nossa, 
     // ela será substituída pela nova, para não lotar o celular do usuário.
 await _notificationsPlugin.show(
-  0, 
-  title, 
-  body, 
-  platformDetails,
+  id: 0, 
+  title: title, 
+  body: body, 
+  notificationDetails: platformDetails, // <-- É só adicionar esta linha!
 );  }
 }
