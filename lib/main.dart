@@ -14,8 +14,7 @@ void main() async {
       apiKey: 'AIzaSyDwNL5OEZskvmuVnXn82sbX4RNCqSlMsR8', 
       
       // 2. Procure no JSON por "mobilesdk_app_id" e cole o valor aqui:
-      appId: '1:999050142406:web:a662eee5b930215601edc7', 
-      
+      appId: '1:999050142406:android:XXXXXXXXXXXXXXXX',
       // 3. Procure no JSON por "project_number" e cole o valor aqui:
       messagingSenderId: '999050142406', 
       
