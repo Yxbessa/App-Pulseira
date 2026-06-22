@@ -1,59 +1,85 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // Chave usada para salvar o JSON no armazenamento local
+  static const String _usersKey = 'usuarios_json_db';
 
-  // Função para CRIAR a conta e salvar os dados iniciais no Banco
+  // Função para CRIAR a conta e salvar os dados no JSON
   Future<String?> registrarUsuario({
     required String nome,
     required String email,
     required String senha,
   }) async {
     try {
-      // 1. Cria a credencial de segurança no Auth
-      UserCredential credencial = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: senha,
-      );
-
-      // 2. Salva as informações extras no banco de dados Firestore
-      if (credencial.user != null) {
-        await _firestore.collection('usuarios').doc(credencial.user!.uid).set({
-          'nome': nome,
-          'email': email,
-          'data_cadastro': DateTime.now(),
-          'uuid_pulseira': '', // Pode ser preenchido depois
-        });
-      }
-      return null; // Retorna null se deu tudo certo
+      final prefs = await SharedPreferences.getInstance();
       
-    } on FirebaseAuthException catch (e) {
-      // Traduz os erros clássicos do Firebase
-      if (e.code == 'weak-password') return 'A senha é muito fraca.';
-      if (e.code == 'email-already-in-use') return 'Este e-mail já está em uso.';
-      return e.message;
+      // Lê o JSON atual do celular
+      String? jsonString = prefs.getString(_usersKey);
+      
+      // Converte o texto JSON numa lista do Dart. Se não existir, cria uma lista vazia.
+      List<dynamic> usuarios = jsonString != null ? jsonDecode(jsonString) : [];
+
+      // Verifica se o e-mail já existe na lista
+      bool emailJaExiste = usuarios.any((user) => user['email'] == email);
+      if (emailJaExiste) {
+        return 'Este e-mail já está em uso.';
+      }
+
+      // Cria o novo usuário em formato de Mapa (Dictionary)
+      Map<String, dynamic> novoUsuario = {
+        'nome': nome,
+        'email': email,
+        'senha': senha, // Apenas para fins acadêmicos/locais
+        'data_cadastro': DateTime.now().toIso8601String(),
+        'uuid_pulseira': '',
+      };
+
+      // Adiciona na lista e salva de volta no armazenamento convertendo para JSON
+      usuarios.add(novoUsuario);
+      await prefs.setString(_usersKey, jsonEncode(usuarios));
+
+      return null; // Sucesso (nenhum erro)
+      
     } catch (e) {
-      return 'Erro desconhecido: $e';
+      return 'Erro ao salvar no JSON: $e';
     }
   }
 
-  // Função para FAZER LOGIN
+  // Função para FAZER LOGIN lendo do JSON
   Future<String?> entrar({required String email, required String senha}) async {
     try {
-      await _auth.signInWithEmailAndPassword(email: email, password: senha);
-      return null;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found' || e.code == 'wrong-password') {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Lê o JSON salvo
+      String? jsonString = prefs.getString(_usersKey);
+      
+      if (jsonString == null) {
+        return 'Nenhum usuário cadastrado. Crie uma conta primeiro.';
+      }
+
+      List<dynamic> usuarios = jsonDecode(jsonString);
+
+      // Procura um usuário que tenha o e-mail E a senha iguais aos digitados
+      var usuarioEncontrado = usuarios.cast<Map<String, dynamic>>().firstWhere(
+        (user) => user['email'] == email && user['senha'] == senha,
+        orElse: () => {}, // Retorna vazio se não achar
+      );
+
+      // Se o mapa estiver vazio, as credenciais estão erradas
+      if (usuarioEncontrado.isEmpty) {
         return 'E-mail ou senha incorretos.';
       }
-      return e.message;
+
+      return null; // Sucesso!
+      
+    } catch (e) {
+      return 'Erro ao ler o arquivo JSON: $e';
     }
   }
 
-  // Função para SAIR
+  // Função para SAIR (Como o login é local agora, não precisamos derrubar sessão de servidor)
   Future<void> sair() async {
-    await _auth.signOut();
+    // Pode ficar vazio para a lógica atual
   }
 }

@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SuaTelaPrincipal()));
         );
-    }
+    }  
   }
 
   @override

@@ -1,29 +1,15 @@
 import 'package:flutter/material.dart';
-import 'ble_controller.dart';
 import 'notification_service.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'login_screen.dart';
+import 'ble_controller.dart'; // Importante para a HomeScreen funcionar
+
 void main() async {
   // Garante que o motor do Flutter está rodando antes de chamar bibliotecas nativas
   WidgetsFlutterBinding.ensureInitialized(); 
 
-  // INICIALIZAÇÃO MANUAL DO FIREBASE (HACK)
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      // 1. Procure no JSON por "current_key" e cole o valor aqui:
-      apiKey: 'AIzaSyDwNL5OEZskvmuVnXn82sbX4RNCqSlMsR8', 
-      
-      // 2. Procure no JSON por "mobilesdk_app_id" e cole o valor aqui:
-      appId: '1:999050142406:android:XXXXXXXXXXXXXXXX',
-      // 3. Procure no JSON por "project_number" e cole o valor aqui:
-      messagingSenderId: '999050142406', 
-      
-      // 4. Procure no JSON por "project_id" e cole o valor aqui:
-      projectId: 'registro-pulseira-infantil', 
-    ),
-  );
   // Liga o nosso serviço de notificação
   await NotificationService.initialize();
+  
   runApp(const MyApp());
 }
 
@@ -38,7 +24,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
-      // Aqui nós apontamos para a tela que criamos abaixo, e não mais para o "MyHomePage"
       home: const LoginScreen(), 
     );
   }
@@ -55,7 +40,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Instancia o controlador que criamos no outro arquivo
+  // Instancia o controlador
   final BleController _bleController = BleController();
   bool _isScanning = false;
 
