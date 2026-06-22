@@ -99,8 +99,10 @@ id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 
 **Fix em `android/gradle/wrapper/gradle-wrapper.properties`:**
 ```
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.13-all.zip
 ```
+
+> ⚠️ **Atualizado:** A versão 8.10.2 foi rejeitada pelo AGP instalado. O próprio erro de build indicou que o mínimo exigido é 8.13.
 
 ---
 
