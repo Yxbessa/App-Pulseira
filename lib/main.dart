@@ -52,7 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
  void _iniciarBuscaComSeguranca() async {
     // 1. Pede todas as permissões críticas juntas antes de qualquer coisa
-    Map<Permission, PermissionStatus> status = await [
+    //Map<Permission, PermissionStatus> status = 
+    await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
       Permission.location, // Necessário para BLE em Androids mais antigos

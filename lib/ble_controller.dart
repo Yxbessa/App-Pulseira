@@ -6,10 +6,10 @@ import 'calculadora_distancia_ble.dart'; // Importe a classe refatorada
 class BleController {
   // Instancia a calculadora com a sua calibração de 1 metro
   final CalculadoraDistanciaBle _calculadora = CalculadoraDistanciaBle(
-    rssiCalibradoA1Metro: -57.0, 
+    rssiCalibradoA1Metro: -61.0, 
   );
 
-  final double distanciaLimite = 10.0; 
+  final double distanciaLimite = 15.0; 
 
   bool _notificacaoJaEnviada = false;
   double _ultimaDistanciaConhecida = 0.0;
@@ -42,7 +42,7 @@ class BleController {
       for (ScanResult result in results) {
         // Filtragem crucial: Só processe se for o SEU dispositivo
           _ultimoSinalRecebido = DateTime.now(); 
-          
+          print("📶 RSSI recebido: ${result.rssi} dBm de ${result.device.name} (${result.device.id})");
           // Alimenta o filtro de Kalman e atualiza a distância imediatamente
           _ultimaDistanciaConhecida = _calculadora.calcularDistancia(result.rssi);
       }

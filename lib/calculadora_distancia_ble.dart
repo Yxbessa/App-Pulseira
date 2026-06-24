@@ -12,8 +12,8 @@ class CalculadoraDistanciaBle {
 
   CalculadoraDistanciaBle({
     required this.rssiCalibradoA1Metro,
-    double ruidoDoAmbiente = 0.05,  
-    double ruidoDoSensor = 5.0,     
+    double ruidoDoAmbiente = 0.1,  
+    double ruidoDoSensor = 15.0,     
     double estimativaDeErroInicial = 1.0,
   })  : _ruidoDoAmbiente = ruidoDoAmbiente,
         _ruidoDoSensor = ruidoDoSensor,
@@ -53,11 +53,11 @@ class CalculadoraDistanciaBle {
 
   double _obterFatorDeAtenuacaoDinamico(double rssi) {
     if (rssi > (rssiCalibradoA1Metro + 10)) {
-      return 1.8; // Campo Próximo (Muito perto)
+      return 1.5; // Campo Próximo (Muito perto)
     } else if (rssi > (rssiCalibradoA1Metro - 10)) {
-      return 2.5; // Zona Ideal (1 a 3 metros)
+      return 2.0; // Zona Ideal (1 a 3 metros)
     } else {
-      return 3.5; // Longe (Muitas reflexões de parede/chão)
+      return 2.5; // Longe (Muitas reflexões de parede/chão)
     }
   }
 
