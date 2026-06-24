@@ -10,8 +10,6 @@ class BleController {
   );
 
   final double distanciaLimite = 10.0; 
-  // O MAC ou ID único da pulseira/ESP32 para evitar ler sinais de terceiros
-  final String deviceMacAddress = "00:11:22:33:44:55"; 
 
   bool _notificacaoJaEnviada = false;
   double _ultimaDistanciaConhecida = 0.0;
@@ -43,12 +41,10 @@ class BleController {
     _scanSubscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult result in results) {
         // Filtragem crucial: Só processe se for o SEU dispositivo
-        if (result.device.remoteId.str == deviceMacAddress) {
           _ultimoSinalRecebido = DateTime.now(); 
           
           // Alimenta o filtro de Kalman e atualiza a distância imediatamente
           _ultimaDistanciaConhecida = _calculadora.calcularDistancia(result.rssi);
-        }
       }
     });
 
@@ -59,31 +55,37 @@ class BleController {
   }
 
   void _verificarRegrasDeSegurancaETela() {
-    // 1. Regra de Perda de Sinal (Desconexão abrupta ou fora de alcance)
+    // 1. REGRA DE PERDA DE SINAL: Se o relógio do sistema avançar 5 segundos e a antena não receber nada
     if (DateTime.now().difference(_ultimoSinalRecebido).inSeconds > 5) {
       if (!_notificacaoJaEnviada) {
+        print("🚨 GATILHO DE PERDA DE SINAL: Disparando notificação!");
         NotificationService.showNotification(
           title: "SINAL PERDIDO! 🚨", 
-          body: "A conexão com o dispositivo foi perdida. Verifique imediatamente."
+          body: "A pulseira desconectou ou saiu totalmente do alcance."
         );
         _notificacaoJaEnviada = true;
       }
-      _calculadora.resetarFiltro(); // Limpa a memória do Kalman pois o estado mudou
-      return; 
+      _calculadora.resetarFiltro(); // Zera o estado do Kalman
+      _distanceStreamController.add(0.0); // Zera a tela para o usuário ver que caiu
+      return; // Interrompe a função aqui. Não faz cálculo de distância de um sinal fantasma.
     }
 
-    // 2. Regra de Afastamento (Passou do limite configurado)
-    if (_ultimaDistanciaConhecida > distanciaLimite && !_notificacaoJaEnviada) {
+    // 2. REGRA DE AFASTAMENTO COM HISTERESE (ZONA DE SEGURANÇA)
+    // Dispara a notificação se passar de 8 metros
+    if (_ultimaDistanciaConhecida > 8.0 && !_notificacaoJaEnviada) {
+      print("⚠️ GATILHO DE AFASTAMENTO: Passou de 8 metros!");
       NotificationService.showNotification(
         title: "Atenção! ⚠️", 
-        body: "O objeto se afastou mais de $distanciaLimite metros."
+        body: "O objeto ultrapassou a zona de segurança segura."
       );
       _notificacaoJaEnviada = true;
-    } else if (_ultimaDistanciaConhecida <= distanciaLimite) {
-      _notificacaoJaEnviada = false; // Reseta o alarme se voltar para perto
+      
+    // Só permite o alarme tocar de novo se o objeto voltar a ficar MUITO PERTO (ex: 6 metros)
+    } else if (_ultimaDistanciaConhecida <= 6.0) {
+      _notificacaoJaEnviada = false; 
     }
 
-    // 3. Atualiza a UI (Tela) com a distância mais estável
+    // 3. Atualiza os números na tela
     _distanceStreamController.add(_ultimaDistanciaConhecida);
   }
 

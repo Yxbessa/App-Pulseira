@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'notification_service.dart';
 import 'login_screen.dart';
 import 'ble_controller.dart'; 
-
+import 'package:permission_handler/permission_handler.dart';
 void main() async {
   // Garante que o motor do Flutter está rodando antes de chamar bibliotecas nativas
   WidgetsFlutterBinding.ensureInitialized(); 
@@ -50,10 +50,20 @@ class _HomeScreenState extends State<HomeScreen> {
     _iniciarBuscaComSeguranca();
   }
 
-  // Função nova: espera o app "respirar" antes de ligar a antena
-  void _iniciarBuscaComSeguranca() async {
-    await Future.delayed(const Duration(seconds: 2)); // Dá 2 segundos para o sistema
-    _bleController.startScanning(); // Começa a alimentar o filtro matematicamente
+ void _iniciarBuscaComSeguranca() async {
+    // 1. Pede todas as permissões críticas juntas antes de qualquer coisa
+    Map<Permission, PermissionStatus> status = await [
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location, // Necessário para BLE em Androids mais antigos
+      Permission.notification, // Crucial para Android 13+ mostrar o alerta
+    ].request();
+
+    // 2. Aguarda o app respirar e o usuário aceitar
+    await Future.delayed(const Duration(seconds: 2)); 
+    
+    // 3. Só agora liga a antena
+    _bleController.startScanning(); 
   }
 
   @override
