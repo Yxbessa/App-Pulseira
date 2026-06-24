@@ -4,77 +4,96 @@ import 'notification_service.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class BleController {
-  // Lista para armazenar as últimas leituras de RSSI (Filtro de Média Móvel)
   final List<int> _rssiHistory = [];
-  final int _maxSamples = 10; 
-  final int txPower = -59; 
-  final double n = 2.5;    
+  final int _maxSamples = 5; 
+  final int txPower = -57; // RSSI a 1 metro de distância (em dBm)
+  final double n = 4.48;
 
-  // Variáveis de alarme
   final double distanciaLimite = 10.0; 
   bool _notificacaoJaEnviada = false;
-  Timer? _timerPerdaSinal;
+  
+  // Timer responsável por atualizar a tela a cada X segundos
+  Timer? _timerDeAtualizacao;
+  // Guarda a hora do último sinal que bateu na antena
+  DateTime _ultimoSinalRecebido = DateTime.now();
 
   final StreamController<double> _distanceStreamController = StreamController<double>.broadcast();
   Stream<double> get distanceStream => _distanceStreamController.stream;
 
   StreamSubscription? _scanSubscription;
+  StreamSubscription? _stateSubscription;
 
   void startScanning() async {
     if (await FlutterBluePlus.isSupported == false) return;
 
-    // Filtro oficial do sistema
     List<Guid> servicosAlvo = [Guid("4d6fc88b-be75-6698-da48-6866a36ec78e")];
 
-    await FlutterBluePlus.startScan(
-      withServices: servicosAlvo, 
-      timeout: const Duration(minutes: 5),
-      androidUsesFineLocation: true,
-    );
+    _stateSubscription = FlutterBluePlus.adapterState.listen((estado) {
+      if (estado == BluetoothAdapterState.on) {
+        FlutterBluePlus.startScan(
+          withServices: servicosAlvo, 
+          continuousUpdates: true, 
+        );
+      }
+    });
 
     _scanSubscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult result in results) {
-        _adicionarLeituraRssi(result.rssi);
-        print("📡 Sinal do ESP32 capturado! Força: ${result.rssi}");
+        _rssiHistory.add(result.rssi);
+        _ultimoSinalRecebido = DateTime.now(); // Renova o tempo de vida do sinal
+        print("RSSI: ${result.rssi}");
+        if (_rssiHistory.length > _maxSamples) {
+          _rssiHistory.removeAt(0); 
+        }
       }
+    });
+
+    // O RELÓGIO PRINCIPAL: Crava a distância a cada 3 segundos
+    _timerDeAtualizacao = Timer.periodic(const Duration(seconds: 3), (timer) {
+      _processarDistanciaETela();
     });
   }
 
-  void _adicionarLeituraRssi(int newRssi) {
-    _timerPerdaSinal?.cancel();
-    _timerPerdaSinal = Timer(const Duration(seconds: 5), () {
+  void _processarDistanciaETela() {
+    // 1. Verifica se já faz mais de 5 segundos desde o último sinal (Perda de Conexão)
+    if (DateTime.now().difference(_ultimoSinalRecebido).inSeconds > 5) {
       if (!_notificacaoJaEnviada) {
-        _dispararNotificacaoAlarme("Sinal Perdido", "O Beacon parou de transmitir ou saiu de alcance!");
+        NotificationService.showNotification(
+          title: "SINAL PERDIDO! 🚨", 
+          body: "A pulseira parou de transmitir. Verifique a criança imediatamente."
+        );
         _notificacaoJaEnviada = true;
       }
-    });
-
-    _rssiHistory.add(newRssi);
-    if (_rssiHistory.length > _maxSamples) {
-      _rssiHistory.removeAt(0); 
+      _rssiHistory.clear(); // Limpa o histórico, pois não há sinal
+      return; // Interrompe o cálculo, pois não há sinal
     }
 
-    double rssiMedio = _rssiHistory.reduce((a, b) => a + b) / _rssiHistory.length;
-    double distancia = pow(10, (txPower - rssiMedio) / (10 * n)).toDouble();
+    // Se tivermos histórico, calculamos e enviamos para a tela
+    if (_rssiHistory.isNotEmpty) {
+      double rssiMedio = _rssiHistory.reduce((a, b) => a + b) / _rssiHistory.length;
+      double distancia = pow(10, (txPower - rssiMedio) / (10 * n)).toDouble();
 
-    if (distancia > distanciaLimite && !_notificacaoJaEnviada) {
-      _dispararNotificacaoAlarme("Atenção!", "O objeto se afastou mais de $distanciaLimite metros.");
-      _notificacaoJaEnviada = true;
-    } else if (distancia <= distanciaLimite) {
-      _notificacaoJaEnviada = false;
+      // 2. Verifica se passou do limite de segurança
+      if (distancia > distanciaLimite && !_notificacaoJaEnviada) {
+        NotificationService.showNotification(
+          title: "Atenção! ⚠️", 
+          body: "O objeto se afastou mais de $distanciaLimite metros."
+        );
+        _notificacaoJaEnviada = true;
+      } else if (distancia <= distanciaLimite) {
+        _notificacaoJaEnviada = false; // Reseta o alarme se voltar para perto
+      }
+
+      // Envia a distância calculada para a tela
+      _distanceStreamController.add(distancia);
     }
-
-    _distanceStreamController.add(distancia);
-  }
-
-  void _dispararNotificacaoAlarme(String titulo, String corpo) {
-    NotificationService.showNotification(title: titulo, body: corpo);
   }
 
   void stopScanning() {
     FlutterBluePlus.stopScan();
     _scanSubscription?.cancel();
-    _timerPerdaSinal?.cancel(); 
+    _stateSubscription?.cancel();
+    _timerDeAtualizacao?.cancel(); 
     _rssiHistory.clear();
   }
 }

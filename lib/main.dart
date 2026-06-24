@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'notification_service.dart';
 import 'login_screen.dart';
-import 'ble_controller.dart'; // Importante para a HomeScreen funcionar
+import 'ble_controller.dart'; 
 
 void main() async {
   // Garante que o motor do Flutter está rodando antes de chamar bibliotecas nativas
@@ -40,22 +40,32 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Instancia o controlador
   final BleController _bleController = BleController();
-  bool _isScanning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _iniciarBuscaComSeguranca();
+  }
+
+  // Função nova: espera o app "respirar" antes de ligar a antena
+  void _iniciarBuscaComSeguranca() async {
+    await Future.delayed(const Duration(seconds: 2)); // Dá 2 segundos para o sistema
+    _bleController.startScanning();
+  }
 
   @override
   void dispose() {
-    // Garante que o escaneamento pare se o usuário fechar a tela
     _bleController.stopScanning();
     super.dispose();
   }
 
+  // ... (o resto do seu build continua exatamentre igual, com o Scaffold e o StreamBuilder)
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Medidor de Distância BLE'),
+        title: const Text('Rastreamento da Pulseira'),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
@@ -63,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // O StreamBuilder reconstrói apenas este texto sempre que uma nova distância chega
+            // O StreamBuilder reconstrói a tela sempre que uma nova distância chega
             StreamBuilder<double>(
               stream: _bleController.distanceStream,
               builder: (context, snapshot) {
@@ -76,37 +86,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       Text(
                         '${snapshot.data!.toStringAsFixed(2)} metros',
-                        style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.blueAccent),
                       ),
                     ],
                   );
                 }
-                // Texto padrão enquanto não acha nenhum sinal
-                return const Text(
-                  'Nenhum sinal detectado ainda.',
-                  style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+                // Visual de carregamento enquanto não acha o primeiro sinal
+                return const Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Buscando sinal da pulseira...',
+                      style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+                    ),
+                  ],
                 );
-              },
-            ),
-            const SizedBox(height: 40),
-            
-            // Botão de Ligar/Desligar a busca
-            ElevatedButton.icon(
-              icon: Icon(_isScanning ? Icons.stop : Icons.search),
-              label: Text(_isScanning ? 'Parar Busca' : 'Buscar Dispositivos'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
-              ),
-              onPressed: () {
-                setState(() {
-                  if (_isScanning) {
-                    _bleController.stopScanning();
-                    _isScanning = false;
-                  } else {
-                    _bleController.startScanning();
-                    _isScanning = true;
-                  }
-                });
               },
             ),
           ],
