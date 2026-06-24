@@ -7,7 +7,7 @@ void main() async {
   // Garante que o motor do Flutter está rodando antes de chamar bibliotecas nativas
   WidgetsFlutterBinding.ensureInitialized(); 
 
-  // Liga o nosso serviço de notificação
+  // Liga o nosso serviço de notificação (Essencial para os alertas gerados lá no BleController)
   await NotificationService.initialize();
   
   runApp(const MyApp());
@@ -40,6 +40,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Aqui instanciamos o controller. 
+  // Por baixo dos panos, ele agora instanciará a CalculadoraDistanciaBle com o Filtro de Kalman!
   final BleController _bleController = BleController();
 
   @override
@@ -51,16 +53,15 @@ class _HomeScreenState extends State<HomeScreen> {
   // Função nova: espera o app "respirar" antes de ligar a antena
   void _iniciarBuscaComSeguranca() async {
     await Future.delayed(const Duration(seconds: 2)); // Dá 2 segundos para o sistema
-    _bleController.startScanning();
+    _bleController.startScanning(); // Começa a alimentar o filtro matematicamente
   }
 
   @override
   void dispose() {
-    _bleController.stopScanning();
+    _bleController.stopScanning(); // Desliga o Bluetooth e reseta a memória do Kalman
     super.dispose();
   }
 
-  // ... (o resto do seu build continua exatamentre igual, com o Scaffold e o StreamBuilder)
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,6 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // O StreamBuilder reconstrói a tela sempre que uma nova distância chega
+            // Agora, esses dados chegam limpos, sem as flutuações bruscas do RSSI bruto
             StreamBuilder<double>(
               stream: _bleController.distanceStream,
               builder: (context, snapshot) {
@@ -85,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                       Text(
+                        // Exibe o cálculo super preciso feito pelo backend
                         '${snapshot.data!.toStringAsFixed(2)} metros',
                         style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.blueAccent),
                       ),
