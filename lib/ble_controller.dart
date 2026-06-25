@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'notification_service.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'calculadora_distancia_ble.dart'; // Importe a classe refatorada
+import 'calculadora_distancia_ble.dart'; 
+import 'api_service.dart'; // <-- IMPORTAÇÃO DO SERVIÇO DE API
 
 class BleController {
-  // Instancia a calculadora com a sua calibração de 1 metro
   final CalculadoraDistanciaBle _calculadora = CalculadoraDistanciaBle(
-    rssiCalibradoA1Metro: -61.0, 
+    rssiCalibradoA1Metro: -56.6, 
   );
-
-  final double distanciaLimite = 15.0; 
+  String nomePai = "";
+  String emailContato = "";
+  String telefoneContato = "";
+  final double distanciaLimite = 10.0; 
+  // O MAC do seu aparelho anotado dos testes
+  final String deviceMacAddress = "74:4D:BD:65:D1:37"; 
 
   bool _notificacaoJaEnviada = false;
   double _ultimaDistanciaConhecida = 0.0;
@@ -37,57 +41,66 @@ class BleController {
       }
     });
 
-    // LISTENER: Reage a cada pacote recebido na antena
     _scanSubscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult result in results) {
-        // Filtragem crucial: Só processe se for o SEU dispositivo
-          _ultimoSinalRecebido = DateTime.now(); 
-          print("📶 RSSI recebido: ${result.rssi} dBm de ${result.device.name} (${result.device.id})");
-          // Alimenta o filtro de Kalman e atualiza a distância imediatamente
-          _ultimaDistanciaConhecida = _calculadora.calcularDistancia(result.rssi);
+        _ultimoSinalRecebido = DateTime.now(); 
+        _ultimaDistanciaConhecida = _calculadora.calcularDistancia(result.rssi);
       }
     });
 
-    // RELÓGIO DE VERIFICAÇÃO: Avalia a segurança a cada 3 segundos
     _timerDeAtualizacao = Timer.periodic(const Duration(seconds: 3), (timer) {
       _verificarRegrasDeSegurancaETela();
     });
   }
 
   void _verificarRegrasDeSegurancaETela() {
-    // 1. REGRA DE PERDA DE SINAL: Se o relógio do sistema avançar 5 segundos e a antena não receber nada
+    int statusConexaoDaVez = 1; // 1 = Conectado, 0 = Desconectado
+
+    // 1. REGRA DE PERDA DE SINAL
     if (DateTime.now().difference(_ultimoSinalRecebido).inSeconds > 5) {
+      statusConexaoDaVez = 0; // Marca como desconectado para a API
       if (!_notificacaoJaEnviada) {
-        print("🚨 GATILHO DE PERDA DE SINAL: Disparando notificação!");
         NotificationService.showNotification(
           title: "SINAL PERDIDO! 🚨", 
           body: "A pulseira desconectou ou saiu totalmente do alcance."
         );
         _notificacaoJaEnviada = true;
       }
-      _calculadora.resetarFiltro(); // Zera o estado do Kalman
-      _distanceStreamController.add(0.0); // Zera a tela para o usuário ver que caiu
-      return; // Interrompe a função aqui. Não faz cálculo de distância de um sinal fantasma.
+      _calculadora.resetarFiltro(); 
+      _distanceStreamController.add(0.0); 
+    } 
+    // 2. REGRA DE AFASTAMENTO
+    else {
+      if (_ultimaDistanciaConhecida > 8.0 && !_notificacaoJaEnviada) {
+        NotificationService.showNotification(
+          title: "Atenção! ⚠️", 
+          body: "O objeto ultrapassou a zona de segurança segura."
+        );
+        _notificacaoJaEnviada = true;
+      } else if (_ultimaDistanciaConhecida <= 6.0) {
+        _notificacaoJaEnviada = false; 
+      }
+      _distanceStreamController.add(_ultimaDistanciaConhecida);
     }
 
-    // 2. REGRA DE AFASTAMENTO COM HISTERESE (ZONA DE SEGURANÇA)
-    // Dispara a notificação se passar de 8 metros
-    if (_ultimaDistanciaConhecida > 8.0 && !_notificacaoJaEnviada) {
-      print("⚠️ GATILHO DE AFASTAMENTO: Passou de 8 metros!");
-      NotificationService.showNotification(
-        title: "Atenção! ⚠️", 
-        body: "O objeto ultrapassou a zona de segurança segura."
-      );
-      _notificacaoJaEnviada = true;
-      
-    // Só permite o alarme tocar de novo se o objeto voltar a ficar MUITO PERTO (ex: 6 metros)
-    } else if (_ultimaDistanciaConhecida <= 6.0) {
-      _notificacaoJaEnviada = false; 
-    }
-
-    // 3. Atualiza os números na tela
-    _distanceStreamController.add(_ultimaDistanciaConhecida);
-  }
+    // =========================================================
+    // 3. COMUNICAÇÃO EXTERNA (A MÁGICA DA API ACONTECE AQUI)
+    // =========================================================
+    // Dispara os dados calculados assincronamente.
+    // Como não usamos 'await' aqui, o Timer nunca trava, 
+    // mesmo se a internet do celular estiver lenta.
+   // =========================================================
+    // 3. COMUNICAÇÃO EXTERNA (A MÁGICA DA API ACONTECE AQUI)
+    // =========================================================
+    // O envio agora leva os dados humanos em vez do MAC Address
+    ApiService.enviarDadosRastreio(
+      nomeResponsavel: nomePai,
+      emailContato: emailContato,
+      telefoneContato: telefoneContato,
+      distancia: statusConexaoDaVez == 1 ? _ultimaDistanciaConhecida : 0.0,
+      statusConexao: statusConexaoDaVez,
+    );
+  } // Fim da função _verificarRegrasDeSegurancaETela
 
   void stopScanning() {
     FlutterBluePlus.stopScan();

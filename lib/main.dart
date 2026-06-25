@@ -3,6 +3,7 @@ import 'notification_service.dart';
 import 'login_screen.dart';
 import 'ble_controller.dart'; 
 import 'package:permission_handler/permission_handler.dart';
+
 void main() async {
   // Garante que o motor do Flutter está rodando antes de chamar bibliotecas nativas
   WidgetsFlutterBinding.ensureInitialized(); 
@@ -33,43 +34,62 @@ class MyApp extends StatelessWidget {
 // A NOSSA HOMESCREEN: A tela real do aplicativo que se comunica com o Bluetooth
 // ============================================================================
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  // 1. Declaramos as variáveis que virão da tela de Login
+  final String nomePai;
+  final String emailPai;
+  final String telefonePai;
+
+  // 2. Obrigamos o Flutter a pedir essas variáveis no construtor
+  const HomeScreen({
+    super.key,
+    this.nomePai = "",
+    this.emailPai = "",
+    this.telefonePai = "",
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Aqui instanciamos o controller. 
-  // Por baixo dos panos, ele agora instanciará a CalculadoraDistanciaBle com o Filtro de Kalman!
   final BleController _bleController = BleController();
 
   @override
   void initState() {
     super.initState();
+    
+    // 3. Alimentamos o BleController com as informações do usuário logado
+    // (Acessamos as variáveis da classe pai usando o comando 'widget.')
+    _bleController.nomePai = widget.nomePai;
+    _bleController.emailContato = widget.emailPai;
+    _bleController.telefoneContato = widget.telefonePai;
+
+    // A chamada está correta aqui!
     _iniciarBuscaComSeguranca();
   }
-
- void _iniciarBuscaComSeguranca() async {
-    // 1. Pede todas as permissões críticas juntas antes de qualquer coisa
-    //Map<Permission, PermissionStatus> status = 
+  
+  // =========================================================
+  // A FUNÇÃO QUE FALTAVA (Gerencia a permissão e liga a antena)
+  // =========================================================
+  void _iniciarBuscaComSeguranca() async {
     await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
-      Permission.location, // Necessário para BLE em Androids mais antigos
-      Permission.notification, // Crucial para Android 13+ mostrar o alerta
+      Permission.location, 
+      Permission.notification, 
     ].request();
 
-    // 2. Aguarda o app respirar e o usuário aceitar
     await Future.delayed(const Duration(seconds: 2)); 
     
-    // 3. Só agora liga a antena
     _bleController.startScanning(); 
   }
 
+  // =========================================================
+  // PREVENÇÃO DE VAZAMENTO DE MEMÓRIA (BOA PRÁTICA)
+  // =========================================================
   @override
   void dispose() {
-    _bleController.stopScanning(); // Desliga o Bluetooth e reseta a memória do Kalman
+    _bleController.stopScanning(); 
     super.dispose();
   }
 

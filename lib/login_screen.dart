@@ -16,44 +16,71 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
   final _nomeController = TextEditingController(); // Usado só no cadastro
+  final _telefoneController = TextEditingController(); // NOVO: Campo de Telefone
   
-  bool _isLogin = true; // Controla se estamos na tela de Entrar ou Cadastrar
+  bool _isLogin = true; 
   bool _isLoading = false;
 
-  void _submeter() async {
+void _submeter() async {
     setState(() => _isLoading = true);
     
     String? erro;
+    // Variáveis que vão armazenar os dados finais que irão para a HomeScreen
+    String nomeFinal = "";
+    String emailFinal = _emailController.text.trim();
+    String telefoneFinal = "";
+
     if (_isLogin) {
-      erro = await _authService.entrar(
+      // TENTA LOGAR
+      var resultado = await _authService.entrar(
         email: _emailController.text.trim(),
         senha: _senhaController.text.trim(),
       );
+
+      if (resultado is String) {
+        erro = resultado; // Se retornou String, é uma mensagem de erro
+      } else if (resultado is Map<String, dynamic>) {
+        // Se retornou um Map, o login foi sucesso! Puxamos os dados do banco local
+        nomeFinal = resultado['nome'] ?? "Responsável";
+        telefoneFinal = resultado['telefone'] ?? "";
+      }
     } else {
+      // TENTA CADASTRAR
       erro = await _authService.registrarUsuario(
         nome: _nomeController.text.trim(),
         email: _emailController.text.trim(),
         senha: _senhaController.text.trim(),
+        telefone: _telefoneController.text.trim(), // Enviando para o banco
       );
+      
+      if (erro == null) {
+        // Se o cadastro deu certo, os dados finais são os que ele acabou de digitar
+        nomeFinal = _nomeController.text.trim();
+        telefoneFinal = _telefoneController.text.trim();
+      }
     }
 
     setState(() => _isLoading = false);
-    if(!mounted) {
-      return;
-    }
+    
+    if (!mounted) return;
+    
     if (erro != null) {
-      // Mostra o erro na tela
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro)));
     } else {
-      // Sucesso! Aqui você navega para a tela principal da pulseira
-        print("Usuário autenticado com sucesso!");Navigator.pushReplacement(
+      // Navegando com os dados garantidos (seja do banco ou da digitação nova)
+      Navigator.pushReplacement(
         context, 
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SuaTelaPrincipal()));
-        );
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(
+            nomePai: nomeFinal, 
+            emailPai: emailFinal,
+            telefonePai: telefoneFinal,
+          )
+        ),
+      );
     }  
   }
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,6 +95,19 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _nomeController,
                 decoration: const InputDecoration(labelText: 'Nome Completo', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              // ==========================================
+              // NOVO: Campo para o Telefone de Contato
+              // ==========================================
+              TextField(
+                controller: _telefoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Telefone para Contato (com DDD)', 
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
+                ),
               ),
               const SizedBox(height: 16),
             ],
