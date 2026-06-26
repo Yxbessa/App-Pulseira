@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String urlServidor = 'https://seu-site-externo.com/api/rastreio';
+  static const String urlServidor = 'https://y-lvi1-github-io.onrender.com/api/rastreio';
 
   static Future<void> enviarDadosRastreio({
     required String nomeResponsavel,
