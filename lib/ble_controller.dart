@@ -6,7 +6,7 @@ import 'api_service.dart'; // <-- IMPORTAÇÃO DO SERVIÇO DE API
 
 class BleController {
   final CalculadoraDistanciaBle _calculadora = CalculadoraDistanciaBle(
-    rssiCalibradoA1Metro: -56.6, 
+    rssiCalibradoA1Metro: -61.0, 
   );
   String nomePai = "";
   String emailContato = "";
@@ -43,7 +43,8 @@ class BleController {
 
     _scanSubscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult result in results) {
-        _ultimoSinalRecebido = DateTime.now(); 
+        _ultimoSinalRecebido = DateTime.now();
+        print("📡 RSSI Bruto: ${result.rssi}");
         _ultimaDistanciaConhecida = _calculadora.calcularDistancia(result.rssi);
       }
     });
@@ -71,7 +72,7 @@ class BleController {
     } 
     // 2. REGRA DE AFASTAMENTO
     else {
-      if (_ultimaDistanciaConhecida > 8.0 && !_notificacaoJaEnviada) {
+      if (_ultimaDistanciaConhecida > 10.0 && !_notificacaoJaEnviada) {
         NotificationService.showNotification(
           title: "Atenção! ⚠️", 
           body: "O objeto ultrapassou a zona de segurança segura."

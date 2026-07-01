@@ -12,8 +12,8 @@ class CalculadoraDistanciaBle {
 
   CalculadoraDistanciaBle({
     required this.rssiCalibradoA1Metro,
-    double ruidoDoAmbiente = 0.1,  
-    double ruidoDoSensor = 15.0,     
+    double ruidoDoAmbiente = 0.8,  
+    double ruidoDoSensor = 14.0,     
     double estimativaDeErroInicial = 1.0,
   })  : _ruidoDoAmbiente = ruidoDoAmbiente,
         _ruidoDoSensor = ruidoDoSensor,
@@ -63,6 +63,6 @@ class CalculadoraDistanciaBle {
 
   void resetarFiltro() {
     _ultimoRssiFiltrado = null;
-    _estimativaDeErro = 1.0;
+    _estimativaDeErro = 0.5;
   }
 }
